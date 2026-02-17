@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#050a14">
+<title>VisionGuide AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a14;
+    --surface: #0d1a2e;
+    --surface2: #112240;
+    --accent: #00d4ff;
+    --accent2: #0066ff;
+    --warn: #ff6b35;
+    --safe: #00ff88;
+    --text: #e8f4fd;
+    --text-dim: #6a9fd8;
+    --pulse-size: 180px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg);
+    font-family: 'Sora', sans-serif;
+    color: var(--text);
+    user-select: none;
+  }
+
+  /* ── SCREENS ── */
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .5s ease, transform .5s ease; }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: scale(.96); }
+
+  /* ── ANIMATED BG ── */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridDrift 20s linear infinite;
+  }
+  @keyframes gridDrift { from { background-position: 0 0; } to { background-position: 40px 40px; } }
+
+  .orb {
+    position: fixed; border-radius: 50%; filter: blur(80px); opacity: .18; pointer-events: none; z-index: 0;
+  }
+  .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, #00d4ff, transparent); top: -100px; right: -100px; animation: orbFloat1 8s ease-in-out infinite; }
+  .orb-2 { width: 300px; height: 300px; background: radial-gradient(circle, #0066ff, transparent); bottom: -80px; left: -80px; animation: orbFloat2 10s ease-in-out infinite; }
+  .orb-3 { width: 200px; height: 200px; background: radial-gradient(circle, #ff6b35, transparent); top: 40%; left: 50%; transform: translate(-50%,-50%); animation: orbFloat3 6s ease-in-out infinite; opacity: 0; transition: opacity .5s; }
+  .orb-3.danger { opacity: .25; }
+
+  @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,20px)} }
+  @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-30px)} }
+  @keyframes orbFloat3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.3)} }
+
+  /* ══════════════════ WELCOME SCREEN ══════════════════ */
+  #welcome { z-index: 10; text-align: center; padding: 24px; gap: 0; }
+
+  .logo-ring {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 2px solid rgba(0,212,255,.3);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; margin: 0 auto 32px;
+    animation: ringRotate 8s linear infinite;
+  }
+  .logo-ring::before {
+    content: ''; position: absolute; inset: -8px; border-radius: 50%;
+    border: 1px solid rgba(0,212,255,.15);
+    animation: ringRotate 12s linear infinite reverse;
+  }
+  @keyframes ringRotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .logo-ring svg { animation: ringRotate 8s linear infinite reverse; }
+
+  .welcome-title {
+    font-size: clamp(28px, 8vw, 42px);
+    font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .welcome-sub {
+    font-size: 14px; color: var(--text-dim);
+    letter-spacing: .5px; font-weight: 300; margin-bottom: 48px;
+  }
+
+  .feature-pills {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px;
+  }
+  .pill {
+    padding: 6px 14px; border-radius: 100px;
+    border: 1px solid rgba(0,212,255,.2);
+    background: rgba(0,212,255,.05);
+    font-size: 11px; color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: .5px;
+  }
+
+  .start-btn {
+    width: min(280px, 85vw); height: 72px; border-radius: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; cursor: pointer;
+    font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
+    color: #000; letter-spacing: .5px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,212,255,.4), 0 8px 32px rgba(0,0,0,.4);
+    transition: transform .15s, box-shadow .15s;
+    -webkit-appearance: none;
+  }
+  .start-btn:active { transform: scale(.96); box-shadow: 0 0 20px rgba(0,212,255,.3); }
+  .start-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.3), transparent);
+    border-radius: inherit;
+  }
+
+  .api-note {
+    margin-top: 20px; padding: 12px 20px; border-radius: 12px;
+    background: rgba(255,107,53,.08); border: 1px solid rgba(255,107,53,.2);
+    font-size: 11px; color: rgba(255,107,53,.8); max-width: 300px; line-height: 1.5;
+  }
+
+  /* ══════════════════ MAIN APP SCREEN ══════════════════ */
+  #app { z-index: 10; display: flex; flex-direction: column; }
+
+  /* Camera */
+  .camera-container {
+    position: relative; flex: 1; overflow: hidden;
+    background: #000;
+  }
+  #videoEl {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transform: scaleX(-1); /* Mirror for self-view but not for back camera */
+  }
+  #videoEl.rear { transform: none; }
+
+  .cam-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(5,10,20,.6) 0%, transparent 25%, transparent 65%, rgba(5,10,20,.9) 100%);
+  }
+
+  /* Scan line effect */
+  .scanline {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0; top: 0;
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .scanning .scanline { animation: scanDown 2s ease-in-out infinite; opacity: 1; }
+  @keyframes scanDown { from{top:0;opacity:0} 10%{opacity:1} 90%{opacity:1} to{top:100%;opacity:0} }
+
+  /* Corner brackets */
+  .bracket { position: absolute; width: 40px; height: 40px; pointer-events: none; }
+  .bracket-tl { top: 20px; left: 20px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .bracket-tr { top: 20px; right: 20px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  .bracket-bl { bottom: 20px; left: 20px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .bracket-br { bottom: 20px; right: 20px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+  /* Status badge */
+  .status-badge {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 6px 16px; border-radius: 100px;
+    background: rgba(5,10,20,.8); backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,212,255,.3);
+    font-size: 11px; font-family: 'Space Mono', monospace;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--safe); animation: blink 1.5s ease-in-out infinite; }
+  .status-dot.inactive { background: var(--text-dim); animation: none; }
+  .status-dot.danger { background: var(--warn); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* Mode indicator */
+  .mode-chip {
+    position: absolute; top: 52px; left: 50%; transform: translateX(-50%);
+    padding: 4px 12px; border-radius: 100px;
+    background: rgba(0,212,255,.15);
+    border: 1px solid rgba(0,212,255,.3);
+    font-size: 10px; font-family: 'Space Mono', monospace;
+    color: var(--accent); letter-spacing: 1px;
+    display: none;
+  }
+  .mode-chip.visible { display: block; }
+
+  /* ── RESPONSE PANEL ── */
+  .response-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 20px 20px 24px;
+    background: linear-gradient(to top, rgba(5,10,20,.97) 0%, rgba(5,10,20,.85) 100%);
+    backdrop-filter: blur(8px);
+  }
+  .response-label {
+    font-size: 10px; font-family: 'Space Mono', monospace;
+    color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;
+    opacity: .7;
+  }
+  .response-text {
+    font-size: 15px; line-height: 1.6; color: var(--text);
+    min-height: 48px; max-height: 100px; overflow-y: auto;
+    font-weight: 300;
+  }
+  .response-text.danger { color: var(--warn); }
+  .response-text.safe { color: var(--safe); }
+
+  .typing-dots { display: inline-flex; gap: 4px; align-items: center; margin-left: 4px; }
+  .typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: dotPulse 1.2s ease-in-out infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotPulse { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+  /* ── CONTROLS BAR ── */
+  .controls-bar {
+    background: var(--surface); border-top: 1px solid rgba(0,212,255,.08);
+    padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+    position: relative; z-index: 20;
+  }
+
+  .ctrl-btn {
+    flex: 1; height: 54px; border-radius: 16px;
+    border: 1px solid rgba(0,212,255,.15);
+    background: var(--surface2);
+    color: var(--text); font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    transition: all .15s; position: relative; overflow: hidden;
+    -webkit-appearance: none;
+  }
+  .ctrl-btn:active { transform: scale(.94); background: rgba(0,212,255,.1); }
+  .ctrl-btn.active { border-color: var(--accent); background: rgba(0,212,255,.1); color: var(--accent); box-shadow: 0 0 16px rgba(0,212,255,.2); }
+  .ctrl-btn.danger-btn { border-color: var(--warn); background: rgba(255,107,53,.08); color: var(--warn); }
+
+  .ctrl-icon { font-size: 20px; line-height: 1; }
+
+  /* MIC button - large */
+  .mic-btn {
+    width: 64px; height: 64px; min-width: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 24px rgba(0,212,255,.4);
+    transition: all .15s; flex: none;
+    -webkit-appearance: none;
+  }
+  .mic-btn:active { transform: scale(.9); }
+  .mic-btn.listening { animation: micPulse 1s ease-in-out infinite; box-shadow: 0 0 40px rgba(0,212,255,.7); }
+  .mic-btn.off { background: var(--surface2); box-shadow: none; }
+  @keyframes micPulse { 0%,100%{box-shadow:0 0 24px rgba(0,212,255,.4)} 50%{box-shadow:0 0 48px rgba(0,212,255,.8),0 0 80px rgba(0,212,255,.3)} }
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(5,10,20,.95); backdrop-filter: blur(10px);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 20px;
+    transition: opacity .3s;
+  }
+  .modal-overlay.hidden { opacity: 0; pointer-events: none; }
+  .modal-card {
+    background: var(--surface); border: 1px solid rgba(0,212,255,.2);
+    border-radius: 24px 24px 20px 20px; padding: 28px 24px;
+    width: 100%; max-width: 480px;
+    box-shadow: 0 -20px 60px rgba(0,0,0,.5);
+    animation: slideUp .4s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.5; }
+  .modal-input {
+    width: 100%; height: 52px; border-radius: 14px;
+    background: var(--surface2); border: 1px solid rgba(0,212,255,.2);
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 13px;
+    padding: 0 16px; outline: none; margin-bottom: 14px;
+    -webkit-appearance: none;
+  }
+  .modal-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.1); }
+  .modal-save {
+    width: 100%; height: 52px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; color: #000; font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; -webkit-appearance: none;
+    transition: opacity .15s;
+  }
+  .modal-save:active { opacity: .85; }
+  .modal-skip {
+    width: 100%; height: 44px; background: none; border: none;
+    color: var(--text-dim); font-family: 'Sora', sans-serif; font-size: 14px;
+    cursor: pointer; margin-top: 8px; -webkit-appearance: none;
+  }
+
+  /* ── SETTINGS PANEL ── */
+  #settings-panel {
+    position: fixed; inset: 0; z-index: 50;
+    background: var(--bg); overflow-y: auto;
+    transition: transform .4s ease;
+    transform: translateX(100%);
+  }
+  #settings-panel.open { transform: none; }
+  .settings-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 56px 20px 20px;
+    border-bottom: 1px solid rgba(0,212,255,.08);
+  }
+  .settings-back { background: none; border: none; color: var(--accent); font-size: 22px; cursor: pointer; padding: 8px; }
+  .settings-title { font-size: 20px; font-weight: 700; }
+  .settings-body { padding: 20px; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+  .setting-label { font-size: 14px; }
+  .setting-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .toggle {
+    width: 48px; height: 28px; border-radius: 14px;
+    background: var(--surface2); border: 1px solid rgba(0,212,255,.2);
+    position: relative; cursor: pointer; transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent2); border-color: var(--accent2); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; transition: transform .2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  .setting-select {
+    background: var(--surface2); border: 1px solid rgba(0,212,255,.2);
+    color: var(--text); font-family: 'Sora', sans-serif; font-size: 13px;
+    padding: 6px 12px; border-radius: 10px; outline: none; cursor: pointer;
+  }
+
+  /* ── VOICE VISUAL ── */
+  .voice-visualizer {
+    position: absolute; bottom: 155px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px; height: 40px;
+    opacity: 0; transition: opacity .3s;
+    pointer-events: none;
+  }
+  .voice-visualizer.active { opacity: 1; }
+  .voice-bar {
+    width: 4px; border-radius: 4px;
+    background: linear-gradient(to top, var(--accent2), var(--accent));
+    animation: voiceAnim 0.8s ease-in-out infinite;
+  }
+  .voice-bar:nth-child(1){height:12px;animation-delay:.0s}
+  .voice-bar:nth-child(2){height:24px;animation-delay:.1s}
+  .voice-bar:nth-child(3){height:32px;animation-delay:.2s}
+  .voice-bar:nth-child(4){height:20px;animation-delay:.3s}
+  .voice-bar:nth-child(5){height:36px;animation-delay:.15s}
+  .voice-bar:nth-child(6){height:28px;animation-delay:.25s}
+  .voice-bar:nth-child(7){height:16px;animation-delay:.05s}
+  @keyframes voiceAnim {
+    0%,100%{transform:scaleY(.4);opacity:.6}
+    50%{transform:scaleY(1.2);opacity:1}
+  }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    position: absolute; top: 90px; left: 16px; right: 16px;
+    padding: 14px 16px; border-radius: 16px;
+    background: rgba(255,107,53,.15); border: 1px solid var(--warn);
+    font-size: 14px; font-weight: 600; color: var(--warn);
+    display: flex; align-items: center; gap: 10px;
+    backdrop-filter: blur(8px);
+    transform: translateY(-10px); opacity: 0;
+    transition: all .3s; pointer-events: none;
+  }
+  .alert-banner.show { transform: none; opacity: 1; }
+  .alert-icon { font-size: 20px; flex-shrink: 0; animation: alertPulse 1s ease-in-out infinite; }
+  @keyframes alertPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+
+  /* ── QUERY CHIPS ── */
+  .query-chips {
+    position: absolute; top: 50%; left: 0; right: 0;
+    transform: translateY(-50%);
+    display: flex; gap: 8px; padding: 0 16px;
+    overflow-x: auto; scrollbar-width: none;
+    opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  .query-chips::-webkit-scrollbar { display: none; }
+  .query-chips.visible { opacity: 1; pointer-events: all; }
+  .query-chip {
+    padding: 10px 16px; border-radius: 100px; white-space: nowrap;
+    background: rgba(5,10,20,.85); border: 1px solid rgba(0,212,255,.3);
+    color: var(--text); font-size: 13px; font-weight: 500;
+    cursor: pointer; backdrop-filter: blur(8px);
+    transition: all .15s;
+  }
+  .query-chip:active { background: rgba(0,212,255,.15); border-color: var(--accent); color: var(--accent); }
+
+  /* Placeholder when no camera */
+  .cam-placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    background: radial-gradient(ellipse at center, #0d1a2e 0%, #050a14 100%);
+  }
+  .cam-placeholder svg { opacity: .4; }
+  .cam-placeholder p { font-size: 14px; color: var(--text-dim); text-align: center; padding: 0 32px; line-height: 1.6; }
+
+  /* Responsive */
+  @media (min-width: 480px) {
+    #app { max-width: 480px; margin: 0 auto; }
+    .controls-bar { border-radius: 0; }
+  }
+
+  /* ── PERMISSIONS MODAL ── */
+  #permModal {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(5,10,20,.97); backdrop-filter: blur(14px);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 20px; transition: opacity .4s;
+  }
+  #permModal.hidden { opacity: 0; pointer-events: none; }
+
+  .perm-card {
+    background: var(--surface); border: 1px solid rgba(0,212,255,.2);
+    border-radius: 28px; padding: 32px 24px 28px;
+    width: 100%; max-width: 460px;
+    box-shadow: 0 -24px 80px rgba(0,0,0,.6);
+    animation: slideUp .4s ease;
+  }
+
+  .perm-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+
+  .perm-step {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px; border-radius: 18px;
+    background: var(--surface2); border: 1px solid rgba(0,212,255,.08);
+    transition: all .3s;
+  }
+  .perm-step.granted { border-color: rgba(0,255,136,.3); background: rgba(0,255,136,.06); }
+  .perm-step.denied  { border-color: rgba(255,107,53,.3); background: rgba(255,107,53,.06); }
+  .perm-step.loading { border-color: rgba(0,212,255,.3); background: rgba(0,212,255,.06); }
+
+  .perm-icon-wrap {
+    width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+    background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    transition: all .3s;
+  }
+  .perm-step.granted .perm-icon-wrap { background: rgba(0,255,136,.1); border-color: rgba(0,255,136,.3); }
+  .perm-step.denied  .perm-icon-wrap { background: rgba(255,107,53,.1); border-color: rgba(255,107,53,.3); }
+
+  .perm-info { flex: 1; }
+  .perm-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .perm-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+  .perm-badge {
+    font-size: 11px; font-family: 'Space Mono', monospace;
+    padding: 4px 10px; border-radius: 100px; letter-spacing: .5px;
+    background: rgba(0,212,255,.1); color: var(--accent);
+    border: 1px solid rgba(0,212,255,.2); white-space: nowrap;
+    transition: all .3s;
+  }
+  .perm-step.granted .perm-badge { background: rgba(0,255,136,.1); color: var(--safe); border-color: rgba(0,255,136,.3); }
+  .perm-step.denied  .perm-badge { background: rgba(255,107,53,.1); color: var(--warn); border-color: rgba(255,107,53,.3); }
+
+  .perm-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .perm-sub { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 24px; }
+
+  .perm-allow-btn {
+    width: 100%; height: 58px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; color: #000; font-family: 'Sora', sans-serif;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 0 32px rgba(0,212,255,.35);
+    transition: opacity .15s, transform .15s;
+    -webkit-appearance: none; margin-bottom: 10px;
+  }
+  .perm-allow-btn:active { opacity: .85; transform: scale(.97); }
+  .perm-allow-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  .perm-retry-btn {
+    width: 100%; height: 46px; border-radius: 14px;
+    background: rgba(255,107,53,.1); border: 1px solid rgba(255,107,53,.3);
+    color: var(--warn); font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; -webkit-appearance: none; display: none;
+  }
+  .perm-retry-btn.visible { display: block; }
+
+  .perm-denied-guide {
+    margin-top: 12px; padding: 14px 16px; border-radius: 14px;
+    background: rgba(255,107,53,.08); border: 1px solid rgba(255,107,53,.2);
+    font-size: 12px; color: rgba(255,200,180,.9); line-height: 1.6; display: none;
+  }
+  .perm-denied-guide.visible { display: block; }
+  .perm-denied-guide strong { color: var(--warn); }
+
+  .perm-spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid rgba(0,212,255,.3); border-top-color: var(--accent);
+    animation: spin .7s linear infinite; display: none;
+  }
+  .perm-step.loading .perm-spinner { display: block; }
+  .perm-step.loading .perm-badge { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Utility */
+  .hidden { display: none !important; }
+  .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0; }
+</style>
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="orb orb-1" aria-hidden="true"></div>
+<div class="orb orb-2" aria-hidden="true"></div>
+<div class="orb orb-3" id="dangerOrb" aria-hidden="true"></div>
+
+<!-- ══════════════ WELCOME SCREEN ══════════════ -->
+<div class="screen" id="welcome" role="main" aria-label="VisionGuide AI welcome screen">
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:360px;padding:24px">
+
+    <div class="logo-ring" aria-hidden="true">
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="14" stroke="#00d4ff" stroke-width="2"/>
+        <circle cx="26" cy="26" r="6" fill="#00d4ff" opacity=".6"/>
+        <circle cx="26" cy="26" r="2.5" fill="#00d4ff"/>
+        <path d="M26 8 Q44 20 44 26 Q44 38 26 44 Q8 38 8 26 Q8 20 26 8Z" stroke="rgba(0,212,255,.2)" stroke-width="1" fill="none"/>
+      </svg>
+    </div>
+
+    <h1 class="welcome-title">VisionGuide AI</h1>
+    <p class="welcome-sub">Your real-time visual companion</p>
+
+    <div class="feature-pills" role="list" aria-label="Features">
+      <span class="pill" role="listitem">🎤 Voice First</span>
+      <span class="pill" role="listitem">👁 Scene AI</span>
+      <span class="pill" role="listitem">🚶 Walk Mode</span>
+      <span class="pill" role="listitem">📖 OCR</span>
+      <span class="pill" role="listitem">⚠️ Hazard Alert</span>
+    </div>
+
+    <button class="start-btn" id="startBtn" aria-label="Start VisionGuide AI - tap to open camera and begin">
+      Start Guiding Me
+    </button>
+
+    <p class="api-note" role="note">
+      Requires camera & microphone permissions. Uses Anthropic Claude for AI vision — enter your API key to enable live scene analysis.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP SCREEN ══════════════ -->
+<div class="screen hidden" id="app" role="main" aria-label="VisionGuide AI camera assistant">
+
+  <!-- Camera -->
+  <div class="camera-container" id="cameraContainer" aria-label="Camera view">
+    <div class="cam-placeholder" id="camPlaceholder">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <rect x="8" y="16" width="48" height="36" rx="6" stroke="#6a9fd8" stroke-width="2"/>
+        <circle cx="32" cy="34" r="10" stroke="#6a9fd8" stroke-width="2"/>
+        <circle cx="32" cy="34" r="4" fill="#6a9fd8" opacity=".4"/>
+        <rect x="26" y="12" width="12" height="6" rx="3" stroke="#6a9fd8" stroke-width="2"/>
+      </svg>
+      <p id="camPlaceholderText">Tap the camera button or allow camera access to begin</p>
+    </div>
+
+    <video id="videoEl" autoplay playsinline muted aria-hidden="true"></video>
+    <canvas id="captureCanvas" style="display:none"></canvas>
+
+    <div class="cam-overlay" aria-hidden="true"></div>
+    <div class="scanline" id="scanline" aria-hidden="true"></div>
+
+    <div class="bracket bracket-tl" aria-hidden="true"></div>
+    <div class="bracket bracket-tr" aria-hidden="true"></div>
+    <div class="bracket bracket-bl" aria-hidden="true"></div>
+    <div class="bracket bracket-br" aria-hidden="true"></div>
+
+    <!-- Status -->
+    <div class="status-badge" id="statusBadge" aria-live="polite" role="status">
+      <div class="status-dot inactive" id="statusDot"></div>
+      <span id="statusText">Camera Off</span>
+    </div>
+
+    <!-- Mode chip -->
+    <div class="mode-chip" id="modeChip" aria-live="polite"></div>
+
+    <!-- Alert -->
+    <div class="alert-banner" id="alertBanner" role="alert" aria-live="assertive">
+      <span class="alert-icon">⚠️</span>
+      <span id="alertText">Hazard detected ahead</span>
+    </div>
+
+    <!-- Voice visualizer -->
+    <div class="voice-visualizer" id="voiceViz" aria-hidden="true">
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+      <div class="voice-bar"></div>
+    </div>
+
+    <!-- Quick queries -->
+    <div class="query-chips" id="queryChips" role="list" aria-label="Quick questions">
+      <button class="query-chip" onclick="App.quickQuery('What is in front of me?')" aria-label="Ask: What is in front of me">What's ahead?</button>
+      <button class="query-chip" onclick="App.quickQuery('Is it safe to walk forward?')" aria-label="Ask: Is it safe to walk">Safe to walk?</button>
+      <button class="query-chip" onclick="App.quickQuery('Please read any text you can see')" aria-label="Ask to read text">Read text</button>
+      <button class="query-chip" onclick="App.quickQuery('Describe my surroundings in detail')" aria-label="Describe surroundings">Describe scene</button>
+      <button class="query-chip" onclick="App.quickQuery('Are there any stairs or obstacles?')" aria-label="Check for obstacles">Check obstacles</button>
+    </div>
+
+    <!-- Response panel -->
+    <div class="response-panel" id="responsePanel">
+      <div class="response-label">AI GUIDE</div>
+      <div class="response-text" id="responseText" aria-live="polite" role="status">
+        Camera ready. Tap the mic or ask a question to begin.
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar" role="toolbar" aria-label="Controls">
+    <button class="ctrl-btn" id="camBtn" onclick="App.toggleCamera()" aria-label="Toggle camera">
+      <span class="ctrl-icon">📷</span>
+      <span>Camera</span>
+    </button>
+
+    <button class="ctrl-btn" id="walkBtn" onclick="App.toggleWalkMode()" aria-label="Toggle walking assistance mode">
+      <span class="ctrl-icon">🚶</span>
+      <span>Walk</span>
+    </button>
+
+    <button class="mic-btn off" id="micBtn" onclick="App.toggleMic()" aria-label="Toggle voice input - press and hold or tap to listen">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="9" y="2" width="6" height="12" rx="3" fill="white"/>
+        <path d="M5 10a7 7 0 0014 0" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="8" y1="21" x2="16" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <button class="ctrl-btn" id="snapBtn" onclick="App.snapAndAnalyze()" aria-label="Capture and analyze current view">
+      <span class="ctrl-icon">🔍</span>
+      <span>Analyze</span>
+    </button>
+
+    <button class="ctrl-btn" id="settingsBtn" onclick="App.openSettings()" aria-label="Open settings">
+      <span class="ctrl-icon">⚙️</span>
+      <span>Settings</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════ SETTINGS PANEL ══════════════ -->
+<div id="settings-panel" role="dialog" aria-label="Settings" aria-modal="true">
+  <div class="settings-header">
+    <button class="settings-back" onclick="App.closeSettings()" aria-label="Close settings">←</button>
+    <h2 class="settings-title">Settings</h2>
+  </div>
+  <div class="settings-body">
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Anthropic API Key</div>
+        <div class="setting-hint">Required for AI scene analysis</div>
+      </div>
+      <button class="ctrl-btn" style="width:80px;height:36px;font-size:11px" onclick="App.showApiModal()" aria-label="Configure API key">Configure</button>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Auto-scan interval</div>
+        <div class="setting-hint">How often to analyze (seconds)</div>
+      </div>
+      <select class="setting-select" id="scanIntervalSel" onchange="App.setScanInterval(this.value)" aria-label="Auto-scan interval">
+        <option value="0">Off</option>
+        <option value="3000">3s</option>
+        <option value="5000" selected>5s</option>
+        <option value="10000">10s</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Voice speed</div>
+        <div class="setting-hint">Speech output rate</div>
+      </div>
+      <select class="setting-select" id="voiceSpeedSel" onchange="App.setVoiceSpeed(this.value)" aria-label="Voice speed">
+        <option value="0.8">Slow</option>
+        <option value="1" selected>Normal</option>
+        <option value="1.3">Fast</option>
+        <option value="1.6">Very Fast</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Haptic alerts</div>
+        <div class="setting-hint">Vibrate on hazard detection</div>
+      </div>
+      <div class="toggle on" id="hapticToggle" onclick="App.toggleHaptic()" role="switch" aria-checked="true" aria-label="Haptic alerts"></div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Confidence detail</div>
+        <div class="setting-hint">Include confidence in responses</div>
+      </div>
+      <div class="toggle" id="confToggle" onclick="App.toggleConf()" role="switch" aria-checked="false" aria-label="Confidence detail"></div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Show quick queries</div>
+        <div class="setting-hint">Tap shortcuts on camera view</div>
+      </div>
+      <div class="toggle on" id="chipsToggle" onclick="App.toggleChips()" role="switch" aria-checked="true" aria-label="Show quick queries"></div>
+    </div>
+
+    <div style="margin-top:20px;padding:16px;background:var(--surface2);border-radius:16px;border:1px solid rgba(0,212,255,.1)">
+      <div style="font-size:11px;font-family:'Space Mono',monospace;color:var(--accent);letter-spacing:1px;margin-bottom:8px">VOICE COMMANDS</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:2">
+        "What is in front of me?" · "Is it safe to walk?" · "Read this text" · "Describe my surroundings" · "Start walking mode" · "Stop walking mode" · "Are there any obstacles?" · "What color is this?"
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:16px;background:rgba(255,107,53,.06);border-radius:16px;border:1px solid rgba(255,107,53,.15)">
+      <div style="font-size:11px;font-family:'Space Mono',monospace;color:var(--warn);letter-spacing:1px;margin-bottom:6px">DEMO MODE</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6">Without an API key, the app simulates AI responses for testing. Add your Anthropic key to enable real Claude vision analysis.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PERMISSIONS MODAL ══════════════ -->
+<div id="permModal" class="hidden" role="dialog" aria-label="Permission requests" aria-modal="true">
+  <div class="perm-card">
+    <div class="perm-title">🔐 Allow Access</div>
+    <p class="perm-sub">VisionGuide needs camera and microphone access to guide you. Tap <strong style="color:var(--accent)">Grant Permissions</strong> and then <strong style="color:var(--accent)">Allow</strong> on each popup.</p>
+
+    <div class="perm-steps">
+      <div class="perm-step" id="permCamStep">
+        <div class="perm-icon-wrap">📷</div>
+        <div class="perm-info">
+          <div class="perm-name">Camera</div>
+          <div class="perm-desc">Captures your surroundings for AI scene analysis</div>
+        </div>
+        <div class="perm-badge" id="permCamBadge">Required</div>
+        <div class="perm-spinner" id="permCamSpinner"></div>
+      </div>
+      <div class="perm-step" id="permMicStep">
+        <div class="perm-icon-wrap">🎤</div>
+        <div class="perm-info">
+          <div class="perm-name">Microphone</div>
+          <div class="perm-desc">Listens to your voice questions and commands</div>
+        </div>
+        <div class="perm-badge" id="permMicBadge">Required</div>
+        <div class="perm-spinner" id="permMicSpinner"></div>
+      </div>
+    </div>
+
+    <button class="perm-allow-btn" id="permAllowBtn" onclick="App.requestPermissions()">
+      Grant Permissions
+    </button>
+    <button class="perm-retry-btn" id="permRetryBtn" onclick="App.requestPermissions()">
+      🔄 Try Again
+    </button>
+
+    <div class="perm-denied-guide" id="permDeniedGuide">
+      <strong>Permission was blocked.</strong> To fix this:<br>
+      • <strong>Chrome Android:</strong> Tap the 🔒 lock icon in the address bar → Site settings → Camera &amp; Mic → Allow<br>
+      • <strong>Safari iOS:</strong> Go to Settings app → Safari → Camera &amp; Microphone → Allow<br>
+      Then tap <strong>Try Again</strong> above.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ API KEY MODAL ══════════════ -->
+<div class="modal-overlay hidden" id="apiModal" role="dialog" aria-label="API key setup" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-title">🔑 Connect AI Vision</div>
+    <p class="modal-sub">Enter your Anthropic API key to enable real-time scene analysis with Claude. Your key is stored locally and never sent to our servers.</p>
+    <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-ant-..." aria-label="Anthropic API key" autocomplete="off" spellcheck="false">
+    <button class="modal-save" onclick="App.saveApiKey()" aria-label="Save API key and start">Save & Start</button>
+    <button class="modal-skip" onclick="App.skipApiKey()" aria-label="Skip and use demo mode">Use Demo Mode</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// VisionGuide AI — Core Application Logic
+// ═══════════════════════════════════════════════════════════
+
+const App = (() => {
+  // State
+  let state = {
+    cameraActive: false,
+    walkMode: false,
+    listening: false,
+    processing: false,
+    apiKey: localStorage.getItem('vg_api_key') || '',
+    voiceRate: 1,
+    haptic: true,
+    showChips: true,
+    showConf: false,
+    scanInterval: 5000,
+    scanTimer: null,
+    stream: null,
+    recognition: null,
+    speechSynth: window.speechSynthesis,
+    currentUtterance: null,
+    demoMode: !localStorage.getItem('vg_api_key'),
+    lastCapture: null,
+  };
+
+  // Demo responses library
+  const demoResponses = {
+    walk: [
+      "Path is clear ahead for approximately 5 meters. I can see a sidewalk continuing straight. There's a parked car to your left — stay toward the right.",
+      "Walking path looks safe. There is a pedestrian crossing approximately 8 meters ahead. You're currently on flat pavement.",
+      "Caution — I can see what appears to be a step or curb about 2 meters ahead. Slow down slightly.",
+      "Indoor corridor visible. The path is clear. There is a door on the right side approximately 3 meters away.",
+    ],
+    describe: [
+      "You're in what appears to be an indoor space. There's a table in front of you, chairs to your left. Natural lighting from a window on the right side. The floor appears to be tiled.",
+      "Outdoor urban environment. Buildings on both sides. Sidewalk ahead is clear. I can see some foot traffic further ahead — people walking in both directions.",
+      "You appear to be in a room. There are shelves with items on the right side. A doorway is visible ahead. Lighting is moderate. The area appears clear of immediate obstacles.",
+    ],
+    text: [
+      "I can see text that reads: 'ENTRANCE — Pull to open'. Below it says 'No smoking' and 'Open 9AM to 6PM'.",
+      "Text visible on the label: 'Paracetamol 500mg — Take one tablet every 6 hours. Do not exceed 4 tablets in 24 hours.'",
+      "Sign reads: 'Platform 3 — Next train 2 minutes. Mind the gap when boarding.'",
+    ],
+    hazard: [
+      "⚠️ HAZARD: Open drain or gap detected approximately 1 meter ahead on the right. Step left to avoid.",
+      "⚠️ WARNING: Low overhead obstacle — possible branch or sign at head height, about 2 meters ahead. Duck slightly.",
+      "⚠️ CAUTION: Wet floor or puddle visible ahead. Surface may be slippery. Proceed carefully.",
+    ],
+    general: [
+      "I can see you're holding the phone in portrait orientation. The camera has a clear view forward. Ready to assist — what would you like to know?",
+      "Environment looks like an outdoor area. Lighting conditions are good for camera analysis. I'm ready to help — ask me anything about what you're looking at.",
+    ]
+  };
+
+  // ── Init ──────────────────────────────────────────────
+  function init() {
+    document.getElementById('startBtn').addEventListener('click', onStart);
+    document.getElementById('apiKeyInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') saveApiKey();
+    });
+
+    // Load settings
+    state.voiceRate = parseFloat(localStorage.getItem('vg_speed') || '1');
+    state.haptic = localStorage.getItem('vg_haptic') !== 'false';
+    state.showChips = localStorage.getItem('vg_chips') !== 'false';
+    state.scanInterval = parseInt(localStorage.getItem('vg_interval') || '5000');
+
+    updateToggles();
+
+    // Init speech recognition
+    initRecognition();
+
+    // Accessibility: speak welcome
+    setTimeout(() => {
+      speak("VisionGuide AI ready. Tap Start Guiding Me to begin.", false);
+    }, 800);
+  }
+
+  function updateToggles() {
+    setToggle('hapticToggle', state.haptic);
+    setToggle('confToggle', state.showConf);
+    setToggle('chipsToggle', state.showChips);
+    document.getElementById('voiceSpeedSel').value = state.voiceRate.toString();
+    document.getElementById('scanIntervalSel').value = state.scanInterval.toString();
+  }
+
+  function setToggle(id, val) {
+    const el = document.getElementById(id);
+    el.classList.toggle('on', val);
+    el.setAttribute('aria-checked', val.toString());
+  }
+
+  // ── Start Flow ────────────────────────────────────────
+  function onStart() {
+    vibrate([20]);
+    // Always show permission modal first so browser popup appears on screen
+    showPermModal();
+  }
+
+  function showPermModal() {
+    // Reset state
+    setPermStep('cam', 'idle');
+    setPermStep('mic', 'idle');
+    document.getElementById('permRetryBtn').classList.remove('visible');
+    document.getElementById('permDeniedGuide').classList.remove('visible');
+    document.getElementById('permAllowBtn').disabled = false;
+    document.getElementById('permAllowBtn').textContent = 'Grant Permissions';
+    document.getElementById('permModal').classList.remove('hidden');
+  }
+
+  function hidePermModal() {
+    document.getElementById('permModal').classList.add('hidden');
+  }
+
+  // Called by Grant Permissions / Try Again button
+  async function requestPermissions() {
+    document.getElementById('permAllowBtn').disabled = true;
+    document.getElementById('permAllowBtn').textContent = 'Waiting for permission…';
+    document.getElementById('permRetryBtn').classList.remove('visible');
+    document.getElementById('permDeniedGuide').classList.remove('visible');
+
+    let camOk = false;
+    let micOk = false;
+
+    // ── Step 1: Camera ──
+    setPermStep('cam', 'loading');
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      camStream.getTracks().forEach(t => t.stop()); // release, will reacquire in startCamera
+      camOk = true;
+      setPermStep('cam', 'granted');
+    } catch (e) {
+      camOk = false;
+      setPermStep('cam', 'denied');
+    }
+
+    // ── Step 2: Microphone ──
+    setPermStep('mic', 'loading');
+    try {
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micStream.getTracks().forEach(t => t.stop());
+      micOk = true;
+      setPermStep('mic', 'granted');
+    } catch (e) {
+      micOk = false;
+      setPermStep('mic', 'denied');
+    }
+
+    // ── Evaluate ──
+    if (camOk) {
+      // Camera is the critical one — proceed even if mic denied
+      hidePermModal();
+      vibrate([15, 10, 15]);
+      // Now show API key prompt if needed, then launch
+      if (!state.apiKey) {
+        showApiModal();
+      } else {
+        launchApp();
+      }
+    } else {
+      // Camera denied — show guidance
+      document.getElementById('permAllowBtn').disabled = false;
+      document.getElementById('permAllowBtn').textContent = 'Grant Permissions';
+      document.getElementById('permRetryBtn').classList.add('visible');
+      document.getElementById('permDeniedGuide').classList.add('visible');
+      speak("Camera permission was denied. Please follow the on-screen instructions to allow access, then tap Try Again.");
+    }
+  }
+
+  function setPermStep(which, status) {
+    // which: 'cam' | 'mic'   status: 'idle' | 'loading' | 'granted' | 'denied'
+    const stepId = which === 'cam' ? 'permCamStep' : 'permMicStep';
+    const badgeId = which === 'cam' ? 'permCamBadge' : 'permMicBadge';
+    const spinnerId = which === 'cam' ? 'permCamSpinner' : 'permMicSpinner';
+
+    const step = document.getElementById(stepId);
+    const badge = document.getElementById(badgeId);
+    const spinner = document.getElementById(spinnerId);
+
+    // Reset classes
+    step.classList.remove('granted', 'denied', 'loading');
+    badge.style.display = '';
+    spinner.style.display = '';
+
+    if (status === 'idle') {
+      badge.textContent = 'Required';
+    } else if (status === 'loading') {
+      step.classList.add('loading');
+      badge.textContent = 'Waiting…';
+    } else if (status === 'granted') {
+      step.classList.add('granted');
+      badge.textContent = '✓ Allowed';
+    } else if (status === 'denied') {
+      step.classList.add('denied');
+      badge.textContent = '✗ Denied';
+    }
+  }
+
+  function launchApp() {
+    document.getElementById('welcome').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    toggleCamera();
+    setTimeout(() => {
+      speak("Camera started. I'm ready to be your visual guide. You can tap the microphone to ask questions, or use the quick buttons on screen.");
+      if (state.showChips) document.getElementById('queryChips').classList.add('visible');
+    }, 500);
+  }
+
+  // ── API Key ───────────────────────────────────────────
+  function showApiModal() {
+    document.getElementById('apiModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('apiKeyInput').focus(), 300);
+  }
+
+  function hideApiModal() {
+    document.getElementById('apiModal').classList.add('hidden');
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) {
+      state.apiKey = key;
+      state.demoMode = false;
+      localStorage.setItem('vg_api_key', key);
+      hideApiModal();
+      speak("API key saved. AI vision is now active.");
+      if (!document.getElementById('app').classList.contains('hidden')) return;
+      launchApp();
+    } else {
+      document.getElementById('apiKeyInput').style.borderColor = 'var(--warn)';
+      setTimeout(() => document.getElementById('apiKeyInput').style.borderColor = '', 1000);
+    }
+  }
+
+  function skipApiKey() {
+    state.demoMode = true;
+    hideApiModal();
+    speak("Demo mode active. I'll simulate AI responses so you can test the interface.");
+    launchApp();
+  }
+
+  // ── Camera ────────────────────────────────────────────
+  async function toggleCamera() {
+    if (state.cameraActive) {
+      stopCamera();
+    } else {
+      await startCamera();
+    }
+  }
+
+  async function startCamera() {
+    try {
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+
+      state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const video = document.getElementById('videoEl');
+      video.srcObject = state.stream;
+      video.classList.add('rear');
+
+      await video.play();
+
+      state.cameraActive = true;
+      document.getElementById('camPlaceholder').style.display = 'none';
+      document.getElementById('statusDot').className = 'status-dot';
+      document.getElementById('statusText').textContent = 'Live';
+      document.getElementById('camBtn').classList.add('active');
+      document.getElementById('micBtn').classList.remove('off');
+
+      setStatus('active', 'Camera Live');
+      speak("Camera is now active.");
+
+      // Start auto-scan if enabled
+      if (state.scanInterval > 0) startAutoScan();
+
+    } catch (err) {
+      console.error('Camera error:', err);
+      const msg = err.name === 'NotAllowedError'
+        ? "Camera permission denied. Please allow camera access and try again."
+        : "Unable to access camera. Please check your device permissions.";
+      setResponse(msg, 'danger');
+      speak(msg);
+      document.getElementById('camPlaceholderText').textContent = msg;
+      // Re-surface permission modal so user can retry without going to settings
+      if (err.name === 'NotAllowedError') {
+        setTimeout(() => {
+          document.getElementById('permModal').classList.remove('hidden');
+          setPermStep('cam', 'denied');
+          setPermStep('mic', 'idle');
+          document.getElementById('permAllowBtn').disabled = false;
+          document.getElementById('permAllowBtn').textContent = 'Grant Permissions';
+          document.getElementById('permRetryBtn').classList.add('visible');
+          document.getElementById('permDeniedGuide').classList.add('visible');
+        }, 600);
+      }
+    }
+  }
+
+  function stopCamera() {
+    if (state.stream) {
+      state.stream.getTracks().forEach(t => t.stop());
+      state.stream = null;
+    }
+    document.getElementById('videoEl').srcObject = null;
+    state.cameraActive = false;
+    document.getElementById('camBtn').classList.remove('active');
+    document.getElementById('micBtn').classList.add('off');
+    setStatus('inactive', 'Camera Off');
+    stopAutoScan();
+
+    if (state.walkMode) toggleWalkMode();
+  }
+
+  // ── Frame Capture ─────────────────────────────────────
+  function captureFrame() {
+    const video = document.getElementById('videoEl');
+    const canvas = document.getElementById('captureCanvas');
+    if (!video.videoWidth) return null;
+
+    canvas.width = 640;
+    canvas.height = Math.round(video.videoHeight * (640 / video.videoWidth));
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.7).split(',')[1]; // base64
+  }
+
+  // ── AI Analysis ───────────────────────────────────────
+  async function analyzeFrame(prompt, isWalkMode = false) {
+    if (state.processing) return;
+    state.processing = true;
+
+    showTyping();
+    setStatus('active', 'Analyzing…');
+    document.getElementById('cameraContainer').classList.add('scanning');
+
+    try {
+      const imageB64 = captureFrame();
+      if (!imageB64 && !state.demoMode) {
+        setResponse("No camera frame available. Please ensure camera is active.", 'danger');
+        speak("No camera frame available.");
+        return;
+      }
+
+      let response;
+      if (state.demoMode || !state.apiKey) {
+        response = await demoAnalyze(prompt, isWalkMode);
+      } else {
+        response = await claudeAnalyze(imageB64, prompt, isWalkMode);
+      }
+
+      processResponse(response, isWalkMode);
+
+    } catch (err) {
+      console.error('Analysis error:', err);
+      const msg = err.message || "Analysis failed. Please try again.";
+      setResponse(msg, 'danger');
+      speak(msg);
+    } finally {
+      state.processing = false;
+      document.getElementById('cameraContainer').classList.remove('scanning');
+      setStatus('active', state.walkMode ? 'Walk Mode' : 'Camera Live');
+    }
+  }
+
+  async function claudeAnalyze(imageB64, userPrompt, isWalkMode) {
+    const systemPrompt = isWalkMode
+      ? `You are VisionGuide AI, a real-time walking assistant for visually impaired users. 
+         Analyze the camera image and provide BRIEF, ACTIONABLE safety guidance (2-3 sentences max).
+         Focus on: immediate obstacles, hazards, path clarity, distance estimates.
+         Use directional language: left/right/ahead/behind, distance in meters/steps.
+         Start with safety status: "Path clear" or "CAUTION" or "WARNING".
+         Be concise and calm. No fluff.`
+      : `You are VisionGuide AI, a visual assistant for blind and visually impaired users.
+         Analyze the camera image and answer the user's question clearly and helpfully.
+         Describe objects, text, hazards, and spatial information with precision.
+         Use natural conversational language. Include relevant details like colors, distances, positions.
+         For text recognition, read out the complete text you see.
+         Keep responses under 3 sentences unless more detail is needed.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": state.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-5-20251101",
+        max_tokens: 300,
+        system: systemPrompt,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: "image/jpeg", data: imageB64 }
+            },
+            { type: "text", text: userPrompt || "Describe what you see" }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData.error?.message || `API error ${response.status}`;
+      if (response.status === 401) throw new Error("Invalid API key. Please re-enter in Settings.");
+      if (response.status === 429) throw new Error("Rate limit reached. Wait a moment and try again.");
+      if (response.status === 403) throw new Error("API key lacks permission. Check your Anthropic account.");
+      throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    return data.content?.[0]?.text || "No response from AI.";
+  }
+
+  async function demoAnalyze(prompt, isWalkMode) {
+    await delay(1200 + Math.random() * 800);
+    const p = (prompt || '').toLowerCase();
+
+    if (isWalkMode || p.includes('walk') || p.includes('safe') || p.includes('ahead')) {
+      const isHazard = Math.random() < 0.25;
+      return isHazard
+        ? demoResponses.hazard[Math.floor(Math.random() * demoResponses.hazard.length)]
+        : demoResponses.walk[Math.floor(Math.random() * demoResponses.walk.length)];
+    }
+    if (p.includes('read') || p.includes('text') || p.includes('label') || p.includes('sign')) {
+      return demoResponses.text[Math.floor(Math.random() * demoResponses.text.length)];
+    }
+    if (p.includes('describ') || p.includes('surround') || p.includes('what') || p.includes('see')) {
+      return demoResponses.describe[Math.floor(Math.random() * demoResponses.describe.length)];
+    }
+    return demoResponses.general[Math.floor(Math.random() * demoResponses.general.length)];
+  }
+
+  function processResponse(text, isWalkMode) {
+    const isHazard = text.includes('⚠️') || text.toLowerCase().includes('caution') || text.toLowerCase().includes('warning') || text.toLowerCase().includes('hazard');
+    const isSafe = text.toLowerCase().includes('clear') || text.toLowerCase().includes('safe');
+
+    setResponse(text, isHazard ? 'danger' : isSafe ? 'safe' : '');
+
+    if (isHazard) {
+      showAlert(text.split('.')[0] || 'Hazard detected');
+      if (state.haptic) vibrate([100, 50, 100, 50, 200]);
+      document.getElementById('dangerOrb').classList.add('danger');
+      document.getElementById('statusDot').className = 'status-dot danger';
+      setTimeout(() => {
+        document.getElementById('dangerOrb').classList.remove('danger');
+        document.getElementById('statusDot').className = 'status-dot';
+      }, 4000);
+    }
+
+    speak(text.replace(/⚠️|[*#]/g, ''));
+  }
+
+  // ── Walk Mode ─────────────────────────────────────────
+  function toggleWalkMode() {
+    if (!state.cameraActive) {
+      speak("Please enable the camera first.");
+      return;
+    }
+
+    state.walkMode = !state.walkMode;
+    const btn = document.getElementById('walkBtn');
+    const chip = document.getElementById('modeChip');
+
+    if (state.walkMode) {
+      btn.classList.add('active');
+      chip.textContent = 'WALK MODE';
+      chip.classList.add('visible');
+      setStatus('active', 'Walk Mode');
+      speak("Walking assistance mode activated. I'll continuously scan your path and alert you to hazards.");
+      vibrate([20, 20, 40]);
+      startAutoScan(true);
+    } else {
+      btn.classList.remove('active');
+      chip.classList.remove('visible');
+      speak("Walking mode deactivated.");
+      startAutoScan(false); // restore normal scan
+      setStatus('active', 'Camera Live');
+    }
+  }
+
+  // ── Auto Scan ─────────────────────────────────────────
+  function startAutoScan(walkModeOverride = null) {
+    stopAutoScan();
+    const isWalk = walkModeOverride !== null ? walkModeOverride : state.walkMode;
+    if (isWalk || state.scanInterval > 0) {
+      const interval = isWalk ? 4000 : state.scanInterval;
+      if (interval > 0) {
+        state.scanTimer = setInterval(() => {
+          if (!state.processing && state.cameraActive) {
+            const prompt = isWalk
+              ? "Is the path ahead safe? Describe any hazards, obstacles, or direction guidance needed."
+              : "Briefly describe what you see.";
+            analyzeFrame(prompt, isWalk);
+          }
+        }, interval);
+      }
+    }
+  }
+
+  function stopAutoScan() {
+    if (state.scanTimer) { clearInterval(state.scanTimer); state.scanTimer = null; }
+  }
+
+  // ── Snap & Analyze ────────────────────────────────────
+  function snapAndAnalyze() {
+    if (!state.cameraActive) {
+      speak("Camera is not active. Please enable the camera first.");
+      return;
+    }
+    vibrate([15]);
+    analyzeFrame("Describe in detail what you can see in this image, including any text, objects, people, or hazards.");
+  }
+
+  function quickQuery(q) {
+    vibrate([10]);
+    if (!state.cameraActive) {
+      speak("Please enable the camera first, then try again.");
+      return;
+    }
+    setResponse("Analyzing your query…");
+    analyzeFrame(q, state.walkMode);
+  }
+
+  // ── Voice Input ───────────────────────────────────────
+  function initRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    state.recognition = new SR();
+    state.recognition.continuous = false;
+    state.recognition.interimResults = false;
+    state.recognition.lang = 'en-US';
+
+    state.recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.trim();
+      setResponse(`You: "${transcript}"`, '');
+      handleVoiceCommand(transcript);
+    };
+
+    state.recognition.onend = () => {
+      if (state.listening) {
+        state.listening = false;
+        document.getElementById('micBtn').classList.remove('listening');
+        document.getElementById('voiceViz').classList.remove('active');
+        document.getElementById('micBtn').classList.remove('off');
+      }
+    };
+
+    state.recognition.onerror = (e) => {
+      state.listening = false;
+      document.getElementById('micBtn').classList.remove('listening');
+      document.getElementById('voiceViz').classList.remove('active');
+      if (e.error !== 'no-speech') {
+        speak("Microphone error. Please try again.");
+      }
+    };
+  }
+
+  function toggleMic() {
+    if (!state.cameraActive && !state.demoMode) {
+      speak("Please enable the camera first.");
+      return;
+    }
+
+    if (state.listening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }
+
+  function startListening() {
+    if (!state.recognition) {
+      speak("Voice recognition is not supported in this browser. Please use Chrome on Android.");
+      return;
+    }
+    if (state.currentUtterance) state.speechSynth.cancel();
+
+    state.listening = true;
+    document.getElementById('micBtn').classList.add('listening');
+    document.getElementById('micBtn').classList.remove('off');
+    document.getElementById('voiceViz').classList.add('active');
+    setResponse("Listening… speak now", '');
+
+    try {
+      state.recognition.start();
+      vibrate([15]);
+    } catch(e) {
+      state.listening = false;
+      document.getElementById('micBtn').classList.remove('listening');
+    }
+  }
+
+  function stopListening() {
+    state.listening = false;
+    if (state.recognition) state.recognition.stop();
+    document.getElementById('micBtn').classList.remove('listening');
+    document.getElementById('voiceViz').classList.remove('active');
+  }
+
+  function handleVoiceCommand(text) {
+    const t = text.toLowerCase();
+
+    if (t.includes('start walk') || t.includes('walking mode')) {
+      if (!state.walkMode) toggleWalkMode();
+      return;
+    }
+    if (t.includes('stop walk')) {
+      if (state.walkMode) toggleWalkMode();
+      return;
+    }
+    if (t.includes('start camera') || t.includes('open camera')) {
+      if (!state.cameraActive) toggleCamera();
+      return;
+    }
+
+    // Forward to AI analysis
+    if (state.cameraActive) {
+      analyzeFrame(text, state.walkMode);
+    } else {
+      speak("Please start the camera first so I can see and help you.");
+    }
+  }
+
+  // ── Speech Output ─────────────────────────────────────
+  function speak(text, interrupt = true) {
+    if (!state.speechSynth) return;
+    if (interrupt && state.currentUtterance) {
+      state.speechSynth.cancel();
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = state.voiceRate;
+    utter.pitch = 1;
+    utter.volume = 1;
+    state.currentUtterance = utter;
+    state.speechSynth.speak(utter);
+  }
+
+  // ── UI Helpers ────────────────────────────────────────
+  function setResponse(text, type = '') {
+    const el = document.getElementById('responseText');
+    el.className = 'response-text' + (type ? ' ' + type : '');
+    el.textContent = text;
+  }
+
+  function showTyping() {
+    const el = document.getElementById('responseText');
+    el.className = 'response-text';
+    el.innerHTML = 'Analyzing<div class="typing-dots"><span></span><span></span><span></span></div>';
+  }
+
+  function setStatus(type, text) {
+    const dot = document.getElementById('statusDot');
+    document.getElementById('statusText').textContent = text;
+    if (type === 'active') { dot.className = 'status-dot'; }
+    else if (type === 'inactive') { dot.className = 'status-dot inactive'; }
+    else if (type === 'danger') { dot.className = 'status-dot danger'; }
+  }
+
+  function showAlert(msg) {
+    const banner = document.getElementById('alertBanner');
+    document.getElementById('alertText').textContent = msg;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 5000);
+  }
+
+  // ── Settings ──────────────────────────────────────────
+  function openSettings() {
+    document.getElementById('settings-panel').classList.add('open');
+    speak("Settings panel open.");
+  }
+
+  function closeSettings() {
+    document.getElementById('settings-panel').classList.remove('open');
+  }
+
+  function setScanInterval(val) {
+    state.scanInterval = parseInt(val);
+    localStorage.setItem('vg_interval', val);
+    stopAutoScan();
+    if (state.cameraActive && !state.walkMode) startAutoScan();
+  }
+
+  function setVoiceSpeed(val) {
+    state.voiceRate = parseFloat(val);
+    localStorage.setItem('vg_speed', val);
+    speak("Voice speed updated.");
+  }
+
+  function toggleHaptic() {
+    state.haptic = !state.haptic;
+    localStorage.setItem('vg_haptic', state.haptic.toString());
+    setToggle('hapticToggle', state.haptic);
+    vibrate(state.haptic ? [20, 10, 20] : []);
+  }
+
+  function toggleConf() {
+    state.showConf = !state.showConf;
+    localStorage.setItem('vg_conf', state.showConf.toString());
+    setToggle('confToggle', state.showConf);
+  }
+
+  function toggleChips() {
+    state.showChips = !state.showChips;
+    localStorage.setItem('vg_chips', state.showChips.toString());
+    setToggle('chipsToggle', state.showChips);
+    document.getElementById('queryChips').classList.toggle('visible', state.showChips && state.cameraActive);
+  }
+
+  // ── Utilities ─────────────────────────────────────────
+  function vibrate(pattern) {
+    if (state.haptic && navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  // Public API
+  return {
+    init,
+    requestPermissions,
+    toggleCamera,
+    toggleWalkMode,
+    toggleMic,
+    snapAndAnalyze,
+    quickQuery,
+    openSettings,
+    closeSettings,
+    showApiModal,
+    saveApiKey,
+    skipApiKey,
+    setScanInterval,
+    setVoiceSpeed,
+    toggleHaptic,
+    toggleConf,
+    toggleChips,
+  };
+})();
+
+// Boot
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+</body>
+</html>

@@ -1146,7 +1146,7 @@ const App = (() => {
 
     } catch (err) {
       console.error('Analysis error:', err);
-      const msg = "Analysis failed. Please try again.";
+      const msg = err.message || "Analysis failed. Please try again.";
       setResponse(msg, 'danger');
       speak(msg);
     } finally {
@@ -1177,6 +1177,7 @@ const App = (() => {
         "Content-Type": "application/json",
         "x-api-key": state.apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
         model: "claude-opus-4-5-20251101",
@@ -1196,8 +1197,12 @@ const App = (() => {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API error ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData.error?.message || `API error ${response.status}`;
+      if (response.status === 401) throw new Error("Invalid API key. Please re-enter in Settings.");
+      if (response.status === 429) throw new Error("Rate limit reached. Wait a moment and try again.");
+      if (response.status === 403) throw new Error("API key lacks permission. Check your Anthropic account.");
+      throw new Error(errMsg);
     }
 
     const data = await response.json();
